@@ -26,8 +26,11 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package com.ea.orbit.container;
 
 
+import com.ea.orbit.actors.extensions.hk2.HK2LifetimeExtension;
+import com.ea.orbit.concurrent.Task;
 import com.ea.orbit.container.config.ContainerConfig;
 import com.ea.orbit.container.config.YAMLConfigReader;
+import com.ea.orbit.lifecycle.Startable;
 import com.google.common.reflect.ClassPath;
 import org.glassfish.hk2.api.ServiceLocator;
 import org.glassfish.hk2.api.ServiceLocatorFactory;
@@ -35,6 +38,7 @@ import org.glassfish.hk2.utilities.ServiceLocatorUtilities;
 import org.jvnet.hk2.annotations.Service;
 
 import javax.inject.Singleton;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -43,7 +47,7 @@ import java.util.UUID;
 import static com.google.common.reflect.ClassPath.*;
 
 @Singleton
-public class Container
+public class Container implements Startable
 {
     private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(Container.class);
 
@@ -61,7 +65,7 @@ public class Container
 
     }
 
-    public void start()
+    public Task start()
     {
         logger.info("Starting Orbit Container");
 
@@ -86,11 +90,15 @@ public class Container
 
         // Initialize singletons/services
         initServices();
+
+        return Task.done();
     }
 
-    public void stop()
+    public Task stop()
     {
         destroyServices();
+
+        return Task.done();
     }
 
     private void initServices()
@@ -99,6 +107,11 @@ public class Container
         {
             serviceLocator.inject(service);
             serviceLocator.postConstruct(service);
+
+            if(service instanceof Startable)
+            {
+                ((Startable) service).start().join();
+            }
         }
     }
 
@@ -107,9 +120,15 @@ public class Container
         for(final Object service : getDiscoveredServices())
         {
             serviceLocator.preDestroy(service);
+
+            if(service instanceof Startable)
+            {
+                ((Startable) service).stop().join();
+            }
         }
     }
 
+    @SuppressWarnings("unchecked")
     private void crawlPackages() throws Exception
     {
         getDiscoveredClasses().clear();
@@ -118,7 +137,9 @@ public class Container
         final ClassPath classPath = from(Container.class.getClassLoader());
 
         // Scan Packages
-        final List<String> packages = config.getAsList("orbit.container.packages", String.class);
+        final List<String> packages = new ArrayList<>();
+        final List<String> configPackages = config.getAsList("orbit.container.packages", String.class);
+        if(configPackages != null) packages.addAll(configPackages);
         if(packagesToScan != null) packages.addAll(packagesToScan);
         for (final String currentPackage : packages)
         {
@@ -132,7 +153,9 @@ public class Container
         }
 
         // Scan classes
-        final List<String> classes = config.getAsList("orbit.container.classes", String.class);
+        final List<String> classes = new ArrayList<>();
+        final List<String> configClasses = config.getAsList("orbit.container.classes", String.class);
+        if(configClasses != null) classes.addAll(configClasses);
         if(classesToScan != null) classes.addAll(classesToScan);
         for (final String currentClass : classes)
         {
@@ -141,8 +164,12 @@ public class Container
 
         try
         {
-            // Stage is special, we want it to start
-            processClass(Class.forName("com.ea.orbit.actors.Stage"));
+            // Stage is special, we want it to start and to register ourselves if it exists
+            Class stageClass = Class.forName("com.ea.orbit.actors.Stage");
+            Class extensionClass = Class.forName("com.ea.orbit.actors.extensions.ActorExtension");
+            Object stage = processClass(stageClass);
+            Method addExtensionMethod = stageClass.getMethod("addExtension", extensionClass);
+            addExtensionMethod.invoke(stage, new HK2LifetimeExtension(serviceLocator));
         }
         catch(ClassNotFoundException e)
         {
