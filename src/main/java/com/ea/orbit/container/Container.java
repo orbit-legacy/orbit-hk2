@@ -50,10 +50,8 @@ import static com.google.common.reflect.ClassPath.*;
 public class Container implements Startable
 {
     private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(Container.class);
-
-    private ContainerConfig config;
     protected ServiceLocator serviceLocator;
-
+    private ContainerConfig config;
     private List<Class<?>> discoveredClasses = new ArrayList<>();
     private List<Object> discoveredServices = new ArrayList<>();
 
@@ -165,10 +163,10 @@ public class Container implements Startable
         try
         {
             // Stage is special, we want it to start and to register ourselves if it exists
-            Class stageClass = Class.forName("com.ea.orbit.actors.Stage");
-            Class extensionClass = Class.forName("com.ea.orbit.actors.extensions.ActorExtension");
-            Object stage = processClass(stageClass);
-            Method addExtensionMethod = stageClass.getMethod("addExtension", extensionClass);
+            final Class stageClass = Class.forName("com.ea.orbit.actors.Stage");
+            final Class extensionClass = Class.forName("com.ea.orbit.actors.extensions.ActorExtension");
+            final Object stage = processClass(stageClass);
+            final Method addExtensionMethod = stageClass.getMethod("addExtension", extensionClass);
             addExtensionMethod.invoke(stage, new HK2LifetimeExtension(serviceLocator));
         }
         catch(ClassNotFoundException e)
@@ -180,9 +178,12 @@ public class Container implements Startable
     @SuppressWarnings("unchecked")
     private <T> T processClass(Class<?> classType) throws InstantiationException, IllegalAccessException
     {
-            getDiscoveredClasses().add(classType);
+        if(!discoveredClasses.contains(classType))
+        {
+            discoveredClasses.add(classType);
 
-            if (classType.isAnnotationPresent(Singleton.class) || classType.isAnnotationPresent(Service.class)) {
+            if (classType.isAnnotationPresent(Singleton.class) || classType.isAnnotationPresent(Service.class))
+            {
                 // Singletons are a special case as we allow interception
 
                 // Do we have an intercept?
@@ -192,13 +193,13 @@ public class Container implements Startable
                     o = classType.newInstance();
                 }
 
-                getDiscoveredServices().add(o);
+                discoveredServices.add(o);
 
                 ServiceLocatorUtilities.addOneConstant(serviceLocator, o);
 
                 return (T) o;
             }
-
+        }
         return null;
     }
 
