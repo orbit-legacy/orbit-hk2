@@ -70,7 +70,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <dependencies>
         <dependency>
             <groupId>com.ea.orbit</groupId>
-            <artifactId>orbit-runtime</artifactId>
+            <artifactId>orbit-core</artifactId>
             <version>${orbit.version}</version>
         </dependency>
         <dependency>
