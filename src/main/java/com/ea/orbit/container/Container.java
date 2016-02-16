@@ -42,7 +42,6 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 import java.util.logging.Logger;
 import java.util.logging.Level;
 
@@ -50,17 +49,23 @@ import java.util.logging.Level;
 public class Container implements Startable
 {
     private static final Logger logger = Logger.getLogger(Container.class.getName());
-    protected ServiceLocator serviceLocator;
+    private ServiceLocator serviceLocator;
     private ContainerConfig config;
+    private String containerName = "orbit-container";
     private List<Class<?>> discoveredClasses = new ArrayList<>();
     private List<Object> discoveredServices = new ArrayList<>();
 
-    private List<String> packagesToScan;
-    private List<String> classesToScan;
+    private List<String> packagesToScan = new ArrayList<>();
+    private List<String> classesToScan = new ArrayList<>();
 
     public Container()
     {
 
+    }
+
+    public Container(String containerName)
+    {
+        this.setContainerName(containerName);
     }
 
     public Task start()
@@ -72,8 +77,8 @@ public class Container implements Startable
 
         // Create the DI container
         ServiceLocatorFactory factory = ServiceLocatorFactory.getInstance();
-        serviceLocator = factory.create(UUID.randomUUID().toString());
-        ServiceLocatorUtilities.addOneConstant(serviceLocator, this);
+        serviceLocator = factory.create(containerName);
+        ServiceLocatorUtilities.addOneConstant(getServiceLocator(), this);
 
         try
         {
@@ -89,6 +94,8 @@ public class Container implements Startable
         // Initialize singletons/services
         initServices();
 
+        logger.info("Container successfully started");
+
         return Task.done();
     }
 
@@ -103,8 +110,8 @@ public class Container implements Startable
     {
         for(final Object service : getDiscoveredServices())
         {
-            serviceLocator.inject(service);
-            serviceLocator.postConstruct(service);
+            getServiceLocator().inject(service);
+            getServiceLocator().postConstruct(service);
 
             if(service instanceof Startable)
             {
@@ -117,7 +124,7 @@ public class Container implements Startable
     {
         for(final Object service : getDiscoveredServices())
         {
-            serviceLocator.preDestroy(service);
+            getServiceLocator().preDestroy(service);
 
             if(service instanceof Startable)
             {
@@ -167,7 +174,7 @@ public class Container implements Startable
             final Class extensionClass = Class.forName("com.ea.orbit.actors.extensions.ActorExtension");
             final Object stage = processClass(stageClass);
             final Method addExtensionMethod = stageClass.getMethod("addExtension", extensionClass);
-            addExtensionMethod.invoke(stage, new HK2LifetimeExtension(serviceLocator));
+            addExtensionMethod.invoke(stage, new HK2LifetimeExtension(getServiceLocator()));
         }
         catch(ClassNotFoundException e)
         {
@@ -195,28 +202,33 @@ public class Container implements Startable
 
                 discoveredServices.add(o);
 
-                ServiceLocatorUtilities.addOneConstant(serviceLocator, o);
+                ServiceLocatorUtilities.addOneConstant(getServiceLocator(), o);
 
                 return (T) o;
+            }
+
+            final Class<?>[] childClasses = classType.getClasses();
+            for(Class childClass : childClasses)
+            {
+                processClass(childClass);
             }
         }
         return null;
     }
 
-    public List<String> getPackagesToScan() {
-        return packagesToScan;
+    public void addClassToScan(Class classType)
+    {
+        addClassToScan(classType.getName());
     }
 
-    public void setPackagesToScan(List<String> packagesToScan) {
-        this.packagesToScan = packagesToScan;
+    public void addClassToScan(String className)
+    {
+        classesToScan.add(className);
     }
 
-    public List<String> getClassesToScan() {
-        return classesToScan;
-    }
-
-    public void setClassesToScan(List<String> classesToScan) {
-        this.classesToScan = classesToScan;
+    public void addPackageToScan(String packageName)
+    {
+        packagesToScan.add(packageName);
     }
 
     public List<Class<?>> getDiscoveredClasses() {
@@ -225,5 +237,20 @@ public class Container implements Startable
 
     public List<Object> getDiscoveredServices() {
         return discoveredServices;
+    }
+
+    public String getContainerName()
+    {
+        return containerName;
+    }
+
+    public void setContainerName(String containerName)
+    {
+        this.containerName = containerName;
+    }
+
+    public ServiceLocator getServiceLocator()
+    {
+        return serviceLocator;
     }
 }
