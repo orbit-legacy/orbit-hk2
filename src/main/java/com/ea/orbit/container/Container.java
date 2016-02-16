@@ -43,13 +43,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-
-import static com.google.common.reflect.ClassPath.*;
+import java.util.logging.Logger;
+import java.util.logging.Level;
 
 @Singleton
 public class Container implements Startable
 {
-    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(Container.class);
+    private static final Logger logger = Logger.getLogger(Container.class.getName());
     protected ServiceLocator serviceLocator;
     private ContainerConfig config;
     private List<Class<?>> discoveredClasses = new ArrayList<>();
@@ -82,7 +82,7 @@ public class Container implements Startable
         }
         catch(Exception e)
         {
-            logger.error(e.toString());
+            logger.log(Level.SEVERE, e.toString());
         }
 
 
@@ -132,7 +132,7 @@ public class Container implements Startable
         getDiscoveredClasses().clear();
         getDiscoveredServices().clear();
 
-        final ClassPath classPath = from(Container.class.getClassLoader());
+        final ClassPath classPath = ClassPath.from(Container.class.getClassLoader());
 
         // Scan Packages
         final List<String> packages = new ArrayList<>();
@@ -141,9 +141,9 @@ public class Container implements Startable
         if(packagesToScan != null) packages.addAll(packagesToScan);
         for (final String currentPackage : packages)
         {
-            final Set<ClassInfo> classInfos = classPath.getTopLevelClassesRecursive(currentPackage);
+            final Set<ClassPath.ClassInfo> classInfos = classPath.getTopLevelClassesRecursive(currentPackage);
 
-            for (final ClassInfo classInfo : classInfos)
+            for (final ClassPath.ClassInfo classInfo : classInfos)
             {
                 final Class<?> loadedClass = classInfo.load();
                 processClass(loadedClass);
