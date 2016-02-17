@@ -28,6 +28,7 @@ package com.ea.orbit.container;
 
 import com.ea.orbit.actors.extensions.hk2.HK2LifetimeExtension;
 import com.ea.orbit.concurrent.Task;
+import com.ea.orbit.container.addons.Addon;
 import com.ea.orbit.container.config.ContainerConfig;
 import com.ea.orbit.container.config.YAMLConfigReader;
 import com.ea.orbit.lifecycle.Startable;
@@ -38,6 +39,8 @@ import org.glassfish.hk2.utilities.ServiceLocatorUtilities;
 import org.jvnet.hk2.annotations.Service;
 
 import javax.inject.Singleton;
+
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
@@ -54,6 +57,7 @@ public class Container implements Startable
     private String containerName = "orbit-container";
     private List<Class<?>> discoveredClasses = new ArrayList<>();
     private List<Object> discoveredServices = new ArrayList<>();
+    private List<Addon> discoveredAddons = new ArrayList<>();
 
     private List<String> packagesToScan = new ArrayList<>();
     private List<String> classesToScan = new ArrayList<>();
@@ -72,16 +76,19 @@ public class Container implements Startable
     {
         logger.info("Starting Orbit Container");
 
-        // Read configuration
-        config = YAMLConfigReader.readConfig();
-
-        // Create the DI container
-        ServiceLocatorFactory factory = ServiceLocatorFactory.getInstance();
-        serviceLocator = factory.create(containerName);
-        ServiceLocatorUtilities.addOneConstant(getServiceLocator(), this);
-
         try
         {
+            // Read configuration
+            config = YAMLConfigReader.readConfig();
+
+            // Create the DI container
+            ServiceLocatorFactory factory = ServiceLocatorFactory.getInstance();
+            serviceLocator = factory.create(containerName);
+            ServiceLocatorUtilities.addOneConstant(getServiceLocator(), this);
+
+            // Discover addons
+            discoverAddons();
+
             // Crawl the packages and make the container aware of them
             crawlPackages();
         }
@@ -106,9 +113,36 @@ public class Container implements Startable
         return Task.done();
     }
 
+    private void discoverAddons() throws IOException, InstantiationException, IllegalAccessException
+    {
+        final ClassPath classPath = ClassPath.from(Container.class.getClassLoader());
+
+        final Set<ClassPath.ClassInfo> classInfos = classPath.getTopLevelClassesRecursive("com.ea.orbit.container.addons");
+
+        for (final ClassPath.ClassInfo classInfo : classInfos)
+        {
+            Class addonClass = classInfo.load();
+            if(!addonClass.isInterface() && Addon.class.isAssignableFrom(addonClass))
+            {
+                Addon addon = (Addon) addonClass.newInstance();
+
+                packagesToScan.addAll(addon.getPackagesToScan());
+                classesToScan.addAll(addon.getClassesToScan());
+
+                discoveredAddons.add(addon);
+            }
+
+        }
+    }
+
     private void initServices()
     {
-        for(final Object service : getDiscoveredServices())
+        for(final Addon addon : discoveredAddons)
+        {
+            addon.configure(this);
+        }
+
+        for(final Object service : discoveredServices)
         {
             getServiceLocator().inject(service);
             getServiceLocator().postConstruct(service);
@@ -122,7 +156,7 @@ public class Container implements Startable
 
     private void destroyServices()
     {
-        for(final Object service : getDiscoveredServices())
+        for(final Object service : discoveredServices)
         {
             getServiceLocator().preDestroy(service);
 
@@ -166,20 +200,6 @@ public class Container implements Startable
         {
             processClass(Class.forName(currentClass));
         }
-
-        try
-        {
-            // Stage is special, we want it to start and to register ourselves if it exists
-            final Class stageClass = Class.forName("com.ea.orbit.actors.Stage");
-            final Class extensionClass = Class.forName("com.ea.orbit.actors.extensions.ActorExtension");
-            final Object stage = processClass(stageClass);
-            final Method addExtensionMethod = stageClass.getMethod("addExtension", extensionClass);
-            addExtensionMethod.invoke(stage, new HK2LifetimeExtension(getServiceLocator()));
-        }
-        catch(ClassNotFoundException e)
-        {
-            // Eat it
-        }
     }
 
     @SuppressWarnings("unchecked")
@@ -214,6 +234,11 @@ public class Container implements Startable
             }
         }
         return null;
+    }
+
+    public Object get(Class<?> classType)
+    {
+        return serviceLocator.getService(classType);
     }
 
     public void addClassToScan(Class classType)
