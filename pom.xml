@@ -29,13 +29,13 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.ea.orbit</groupId>
     <artifactId>orbit-hk2</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.8.0-preview2</version>
     <name>Orbit HK2 Extension</name>
     <description>HK2 lifetime extension for Orbit.</description>
     <url>https://github.com/electronicarts/orbit-hk2/</url>
 
     <properties>
-        <orbit.version>0.8.0-preview1</orbit.version>
+        <orbit.version>0.8.0-preview2</orbit.version>
         <project.target.jdk>1.8</project.target.jdk>
         <project.source.jdk>1.8</project.source.jdk>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
