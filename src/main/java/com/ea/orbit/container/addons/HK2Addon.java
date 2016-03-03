@@ -77,7 +77,7 @@ public class HK2Addon implements Addon
             if(stage != null)
             {
                 final Method addExtensionMethod = stageClass.getMethod(ADD_EXTENSION_METHOD, extensionClass);
-                addExtensionMethod.invoke(stage, new HK2LifetimeExtension(container.getServiceLocator()));
+                addExtensionMethod.invoke(stage, new HK2LifetimeExtension(container));
             }
 
         }

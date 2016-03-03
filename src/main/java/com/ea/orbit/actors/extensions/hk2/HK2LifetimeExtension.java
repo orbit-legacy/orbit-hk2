@@ -29,33 +29,52 @@ package com.ea.orbit.actors.extensions.hk2;
 import com.ea.orbit.actors.extensions.LifetimeExtension;
 import com.ea.orbit.actors.runtime.AbstractActor;
 import com.ea.orbit.concurrent.Task;
+import com.ea.orbit.container.Container;
+
 import org.glassfish.hk2.api.ServiceLocator;
 
 public class HK2LifetimeExtension implements LifetimeExtension
 {
     private ServiceLocator serviceLocator = null;
-
+    private Container container = null;
 
     public HK2LifetimeExtension()
     {
 
     }
 
-    public HK2LifetimeExtension(ServiceLocator serviceLocator)
+    public HK2LifetimeExtension(Container container)
     {
-        this.setServiceLocator(serviceLocator);
+        this.container = container;
     }
 
+    public HK2LifetimeExtension(ServiceLocator serviceLocator)
+    {
+        this.serviceLocator = serviceLocator;
+    }
 
     @Override
     public Task preActivation(AbstractActor actor)
     {
-        serviceLocator.inject(actor);
+        if(container != null)
+        {
+            container.inject(actor);
+        }
+        else if(serviceLocator != null)
+        {
+            serviceLocator.inject(actor);
+        }
+
         return Task.done();
     }
 
     public void setServiceLocator(ServiceLocator serviceLocator)
     {
         this.serviceLocator = serviceLocator;
+    }
+
+    public void setContainer(Container container)
+    {
+        this.container = container;
     }
 }

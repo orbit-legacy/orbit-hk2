@@ -25,7 +25,9 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package com.ea.orbit.container.config;
 
+import com.ea.orbit.actors.core.shaded.org.yaml.snakeyaml.DumperOptions;
 import com.ea.orbit.actors.core.shaded.org.yaml.snakeyaml.Yaml;
+import com.ea.orbit.actors.core.shaded.org.yaml.snakeyaml.introspector.BeanAccess;
 import com.ea.orbit.exception.UncheckedException;
 import com.ea.orbit.util.IOUtils;
 
@@ -72,7 +74,9 @@ public class YAMLConfigReader
     {
         String inputStreamString = IOUtils.toString(new InputStreamReader(in, "UTF-8"));
         Yaml yaml = new Yaml();
+        yaml.setBeanAccess(BeanAccess.FIELD);
         final Iterable<Object> iter = yaml.loadAll(substituteVariables(inputStreamString));
+
         final Map<String, Object> newProperties = new LinkedHashMap<>();
         iter.forEach(item -> {
             final Map<String, Object> section = (Map<String, Object>) item;

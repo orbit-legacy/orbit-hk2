@@ -1,0 +1,10 @@
+com.ea.orbit.actors.extensions.hk2.test.SingletonClass:
+  !!com.ea.orbit.actors.extensions.hk2.test.SingletonClass
+  {
+    interceptVar: intercepted
+  }
+
+
+singleton.overrideVar: overridden
+
+nonsingleton.configTest: overridden

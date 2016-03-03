@@ -26,12 +26,18 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package com.ea.orbit.container;
 
 
+import com.ea.orbit.actors.core.shaded.javassist.Modifier;
 import com.ea.orbit.actors.extensions.hk2.HK2LifetimeExtension;
+import com.ea.orbit.annotation.Config;
 import com.ea.orbit.concurrent.Task;
 import com.ea.orbit.container.addons.Addon;
 import com.ea.orbit.container.config.ContainerConfig;
 import com.ea.orbit.container.config.YAMLConfigReader;
+import com.ea.orbit.exception.UncheckedException;
 import com.ea.orbit.lifecycle.Startable;
+import com.ea.orbit.reflect.ClassCache;
+import com.ea.orbit.reflect.FieldDescriptor;
+
 import com.google.common.reflect.ClassPath;
 import org.glassfish.hk2.api.ServiceLocator;
 import org.glassfish.hk2.api.ServiceLocatorFactory;
@@ -43,6 +49,7 @@ import javax.inject.Singleton;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
@@ -144,7 +151,7 @@ public class Container implements Startable
 
         for(final Object service : discoveredServices)
         {
-            getServiceLocator().inject(service);
+            this.inject(service);
             getServiceLocator().postConstruct(service);
 
             if(service instanceof Startable)
@@ -236,9 +243,134 @@ public class Container implements Startable
         return null;
     }
 
-    public Object get(Class<?> classType)
+    public void inject(Object o)
     {
-        return serviceLocator.getService(classType);
+        this.inject(o, true);
+    }
+
+    public void inject(Object o, boolean injectConfig)
+    {
+        if(serviceLocator != null)
+        {
+            serviceLocator.inject(o);
+        }
+
+        if(injectConfig)
+        {
+            try
+            {
+                this.injectConfig(o);
+            }
+            catch(IllegalAccessException e)
+            {
+                throw new UncheckedException(e);
+            }
+        }
+    }
+
+
+
+    protected void injectConfig(Object o) throws IllegalAccessException
+    {
+        for (FieldDescriptor fd : ClassCache.shared.getClass(o.getClass()).getAllInstanceFields())
+        {
+            injectConfig(o, fd.getField());
+        }
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    protected void injectConfig(Object o, java.lang.reflect.Field f) throws IllegalAccessException
+    {
+        final Config configAnnotation = f.getAnnotation(Config.class);
+        if (configAnnotation != null)
+        {
+            if (Modifier.isFinal(f.getModifiers()))
+            {
+                throw new RuntimeException("Configurable fields should never be final: " + f);
+            }
+
+            f.setAccessible(true);
+
+            if (f.getType() == Integer.TYPE || f.getType() == Integer.class)
+            {
+                f.set(o, config.getAsInt(configAnnotation.value(), (Integer) f.get(o)));
+            }
+            else if (f.getType() == Boolean.TYPE || f.getType() == Boolean.class)
+            {
+                f.set(o, config.getAsBoolean(configAnnotation.value(), (Boolean) f.get(o)));
+            }
+            else if (f.getType() == Long.TYPE || f.getType() == Long.class)
+            {
+                f.set(o, config.getAsLong(configAnnotation.value(), (Long) f.get(o)));
+            }
+            else if (f.getType() == String.class)
+            {
+                f.set(o, config.getAsString(configAnnotation.value(), (String) f.get(o)));
+            }
+            else if (f.getType().isEnum())
+            {
+                final String enumValue = config.getAsString(configAnnotation.value(), null);
+                if (enumValue != null)
+                {
+                    f.set(o, Enum.valueOf((Class<Enum>) f.getType(), enumValue));
+                }
+            }
+            else if (List.class.isAssignableFrom(f.getType()))
+            {
+                if ((config.getAll().get(configAnnotation.value()) != null))
+                {
+                    final Object val = config.getAll().get(configAnnotation.value());
+                    f.set(o, val);
+                }
+            }
+            else if (Set.class.isAssignableFrom(f.getType()))
+            {
+                if ((config.getAll().get(configAnnotation.value()) != null))
+                {
+                    final Object val = config.getAll().get(configAnnotation.value());
+                    if (val instanceof List)
+                    {
+                        f.set(o, new LinkedHashSet((List) val));
+                    }
+                    else
+                    {
+                        f.set(o, val);
+                    }
+                }
+            }
+            else if (config.getAll().get(configAnnotation.value()) != null)
+            {
+                final Object val = config.getAll().get(configAnnotation.value());
+                f.set(o, val);
+            }
+            else
+            {
+                throw new UncheckedException("Field type not supported for configuration injection: " + f);
+            }
+        }
+    }
+
+    public <T> T get(Class<T> clazz)
+    {
+        return this.get(clazz, false);
+    }
+
+    public <T> T get(Class<T> clazz, boolean shouldCreateInstance)
+    {
+        T o = serviceLocator.getService(clazz);
+        if(o == null && shouldCreateInstance)
+        {
+            try
+            {
+                o = clazz.newInstance();
+                this.inject(o);
+            }
+            catch(Exception e)
+            {
+                // Eat it
+            }
+        }
+        return o;
     }
 
     public void addClassToScan(Class classType)
