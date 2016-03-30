@@ -45,6 +45,12 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <orbit.version>0.8.0</orbit.version>
     </properties>
 
+    <scm>
+        <url>https://github.com/orbit/orbit-hk2</url>
+        <connection>scm:git:git://github.com/orbit/orbit-hk2.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/orbit/orbit-hk2.git</developerConnection>
+    </scm>
+
    
     <dependencies>
         <dependency>
