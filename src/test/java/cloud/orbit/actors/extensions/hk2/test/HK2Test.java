@@ -26,9 +26,9 @@
  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package com.ea.orbit.actors.extensions.hk2.test;
+package cloud.orbit.actors.extensions.hk2.test;
 
-import com.ea.orbit.container.Container;
+import cloud.orbit.container.Container;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -38,7 +38,7 @@ import static org.junit.Assert.*;
 /**
  * Created by joe on 3/3/2016.
  */
-public class HK2Tests
+public class HK2Test
 {
     private Container container = null;
 
@@ -46,7 +46,7 @@ public class HK2Tests
     public void setupContainer()
     {
         container = new Container();
-        container.addPackageToScan("com.ea.orbit.actors.extensions.hk2.test");
+        container.addPackageToScan("cloud.orbit.actors.extensions.hk2.test");
         container.start().join();
     }
 

@@ -1,5 +1,5 @@
-com.ea.orbit.actors.extensions.hk2.test.SingletonClass:
-  !!com.ea.orbit.actors.extensions.hk2.test.SingletonClass
+cloud.orbit.actors.extensions.hk2.test.SingletonClass:
+  !!cloud.orbit.actors.extensions.hk2.test.SingletonClass
   {
     interceptVar: intercepted
   }

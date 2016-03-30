@@ -26,81 +26,13 @@
  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package com.ea.orbit.actors.extensions.hk2.test;
+package cloud.orbit.container;
 
-import com.ea.orbit.annotation.Config;
-import com.ea.orbit.container.Container;
-
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
-/**
- * Created by joe on 3/3/2016.
- */
-@Singleton
-public class SingletonClass
+public class Bootstrap
 {
-    private String originalVar = "Hello";
-
-    private String interceptVar = "Hello";
-
-    @Config("singleton.overrideVar")
-    private String configVar = "Hello";
-
-    private boolean postConstructRan = false;
-
-    @Inject
-    private Container injectTest = null;
-
-    @PostConstruct
-    public void postConstruct()
-    {
-        postConstructRan = true;
-    }
-
-    public String getOriginalVar()
-    {
-        return originalVar;
-    }
-
-    public void setOriginalVar(String originalVar)
-    {
-        this.originalVar = originalVar;
-    }
-
-    public String getInterceptVar()
-    {
-        return interceptVar;
-    }
-
-    public void setInterceptVar(String interceptVar)
-    {
-        this.interceptVar = interceptVar;
-    }
-
-    public String getConfigVar()
-    {
-        return configVar;
-    }
-
-    public void setConfigVar(String configVar)
-    {
-        this.configVar = configVar;
-    }
-
-    public boolean didPostConstructRun()
-    {
-        return postConstructRan;
-    }
-
-    public void setPostConstructRan(boolean postConstructRan)
-    {
-        this.postConstructRan = postConstructRan;
-    }
-
-    public Container getInjectTest()
-    {
-        return injectTest;
-    }
+        public static void main(String[] args)
+        {
+            final Container container = new Container();
+            container.start();
+        }
 }

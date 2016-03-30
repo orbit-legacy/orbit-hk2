@@ -26,11 +26,11 @@
  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package com.ea.orbit.container.addons;
+package cloud.orbit.container.addons;
 
-import com.ea.orbit.actors.extensions.hk2.HK2LifetimeExtension;
-import com.ea.orbit.concurrent.Task;
-import com.ea.orbit.container.Container;
+import cloud.orbit.actors.extensions.hk2.HK2LifetimeExtension;
+import cloud.orbit.concurrent.Task;
+import cloud.orbit.container.Container;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -42,8 +42,8 @@ import java.util.List;
  */
 public class HK2Addon implements Addon
 {
-    private static final String STAGE_CLASS = "com.ea.orbit.actors.Stage";
-    private static final String EXTENSION_CLASS = "com.ea.orbit.actors.extensions.ActorExtension";
+    private static final String STAGE_CLASS = "cloud.orbit.actors.Stage";
+    private static final String EXTENSION_CLASS = "cloud.orbit.actors.extensions.ActorExtension";
     private static final String ADD_EXTENSION_METHOD = "addExtension";
 
     @Override

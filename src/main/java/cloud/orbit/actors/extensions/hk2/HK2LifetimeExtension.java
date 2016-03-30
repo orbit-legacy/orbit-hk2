@@ -26,35 +26,58 @@
  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package com.ea.orbit.actors.extensions.hk2.test;
+package cloud.orbit.actors.extensions.hk2;
 
-import com.ea.orbit.annotation.Config;
 
-import javax.inject.Inject;
+import cloud.orbit.actors.extensions.LifetimeExtension;
+import cloud.orbit.actors.runtime.AbstractActor;
+import cloud.orbit.concurrent.Task;
+import cloud.orbit.container.Container;
 
-/**
- * Created by joe on 3/3/2016.
- */
-public class NonSingletonClass
+import org.glassfish.hk2.api.ServiceLocator;
+
+public class HK2LifetimeExtension implements LifetimeExtension
 {
-    @Config("nonsingleton.configTest")
-    private String configTest = "Hello";
+    private ServiceLocator serviceLocator = null;
+    private Container container = null;
 
-    @Inject
-    private  SingletonClass injectTest;
-
-    public String getConfigTest()
+    public HK2LifetimeExtension()
     {
-        return configTest;
+
     }
 
-    public void setConfigTest(String configTest)
+    public HK2LifetimeExtension(Container container)
     {
-        this.configTest = configTest;
+        this.container = container;
     }
 
-    public SingletonClass getInjectTest()
+    public HK2LifetimeExtension(ServiceLocator serviceLocator)
     {
-        return injectTest;
+        this.serviceLocator = serviceLocator;
+    }
+
+    @Override
+    public Task preActivation(AbstractActor actor)
+    {
+        if(container != null)
+        {
+            container.inject(actor);
+        }
+        else if(serviceLocator != null)
+        {
+            serviceLocator.inject(actor);
+        }
+
+        return Task.done();
+    }
+
+    public void setServiceLocator(ServiceLocator serviceLocator)
+    {
+        this.serviceLocator = serviceLocator;
+    }
+
+    public void setContainer(Container container)
+    {
+        this.container = container;
     }
 }

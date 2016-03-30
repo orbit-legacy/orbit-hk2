@@ -26,31 +26,35 @@
  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package com.ea.orbit.container.addons;
+package cloud.orbit.actors.extensions.hk2.test;
 
-import com.ea.orbit.container.Container;
-import com.ea.orbit.lifecycle.Startable;
+import cloud.orbit.annotation.Config;
 
-import java.util.ArrayList;
-import java.util.List;
+import javax.inject.Inject;
 
 /**
- * Created by joe@bioware.com on 2016-02-16.
+ * Created by joe on 3/3/2016.
  */
-public interface Addon
+public class NonSingletonClass
 {
-    public default List<String> getPackagesToScan()
+    @Config("nonsingleton.configTest")
+    private String configTest = "Hello";
+
+    @Inject
+    private  SingletonClass injectTest;
+
+    public String getConfigTest()
     {
-        return new ArrayList<>();
+        return configTest;
     }
 
-    public default List<String> getClassesToScan()
+    public void setConfigTest(String configTest)
     {
-        return new ArrayList<>();
+        this.configTest = configTest;
     }
 
-    public default void configure(Container container)
+    public SingletonClass getInjectTest()
     {
-
+        return injectTest;
     }
 }
