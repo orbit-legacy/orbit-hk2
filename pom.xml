@@ -74,10 +74,15 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             <version>19.0</version>
         </dependency>
         <dependency>
-            <groupId>cloud.orbit</groupId>
-            <artifactId>orbit-actor-tests</artifactId>
-            <version>${orbit.version}</version>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>1.7.21</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
             <scope>test</scope>
+            <version>1.7.21</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>

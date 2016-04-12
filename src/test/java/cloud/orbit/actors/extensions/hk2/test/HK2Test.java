@@ -30,6 +30,7 @@ package cloud.orbit.actors.extensions.hk2.test;
 
 import cloud.orbit.container.Container;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -48,6 +49,12 @@ public class HK2Test
         container = new Container();
         container.addPackageToScan("cloud.orbit.actors.extensions.hk2.test");
         container.start().join();
+    }
+
+    @After
+    public void killContainer()
+    {
+        container.stop().join();
     }
 
     @Test

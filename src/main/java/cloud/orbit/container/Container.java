@@ -44,6 +44,8 @@ import org.glassfish.hk2.api.ServiceLocator;
 import org.glassfish.hk2.api.ServiceLocatorFactory;
 import org.glassfish.hk2.utilities.ServiceLocatorUtilities;
 import org.jvnet.hk2.annotations.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.inject.Singleton;
 
@@ -53,13 +55,11 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.logging.Logger;
-import java.util.logging.Level;
 
 @Singleton
 public class Container implements Startable
 {
-    private static final Logger logger = Logger.getLogger(Container.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(Container.class);
     private ServiceLocator serviceLocator;
     private ContainerConfig config;
     private String containerName = "orbit-container";
@@ -82,12 +82,15 @@ public class Container implements Startable
 
     public Task start()
     {
-        logger.info("Starting Orbit Container");
+        logger.info("Starting orbit container...");
 
         try
         {
             // Read configuration
             config = YAMLConfigReader.readConfig();
+
+            // Override the name if needed
+            containerName = config.getAsString("orbit.container.name", containerName);
 
             // Create the DI container
             ServiceLocatorFactory factory = ServiceLocatorFactory.getInstance();
@@ -102,21 +105,25 @@ public class Container implements Startable
         }
         catch(Exception e)
         {
-            logger.log(Level.SEVERE, e.toString());
+            logger.error(e.toString());
         }
 
 
         // Initialize singletons/services
         initServices();
 
-        logger.info("Container successfully started");
+        logger.info("Container successfully started.");
 
         return Task.done();
     }
 
     public Task stop()
     {
+        logger.info("Stopping orbit container...");
+
         destroyServices();
+
+        logger.info("Container successfully stopped.");
 
         return Task.done();
     }
@@ -127,52 +134,62 @@ public class Container implements Startable
 
         final Set<ClassPath.ClassInfo> classInfos = classPath.getTopLevelClassesRecursive("cloud.orbit.container.addons");
 
-        for (final ClassPath.ClassInfo classInfo : classInfos)
-        {
-            Class addonClass = classInfo.load();
-            if(!addonClass.isInterface() && Addon.class.isAssignableFrom(addonClass))
-            {
-                Addon addon = (Addon) addonClass.newInstance();
+        classInfos.stream()
+                .map(ClassPath.ClassInfo::load)
+                .filter(c -> !c.isInterface() &&  Addon.class.isAssignableFrom(c))
+                .forEach(addonClass ->
+                {
+                    Addon addon = null;
+                    try
+                    {
+                        addon = (Addon) addonClass.newInstance();
+                    }
+                    catch(Exception e)
+                    {
+                        throw new UncheckedException(e);
+                    }
 
-                packagesToScan.addAll(addon.getPackagesToScan());
-                classesToScan.addAll(addon.getClassesToScan());
 
-                discoveredAddons.add(addon);
-            }
+                    packagesToScan.addAll(addon.getPackagesToScan());
+                    classesToScan.addAll(addon.getClassesToScan());
 
-        }
+                    discoveredAddons.add(addon);
+                });
+
+        logger.info("Container discovered {} addons.", discoveredAddons.size());
     }
 
     private void initServices()
     {
-        for(final Addon addon : discoveredAddons)
-        {
-            addon.configure(this);
-        }
+        // Configure addons
+        discoveredAddons.stream().forEach(a -> a.configure(this));
 
-        for(final Object service : discoveredServices)
-        {
-            this.inject(service);
-            getServiceLocator().postConstruct(service);
+        // Configure and start services
+        discoveredServices.stream()
+                .forEach(service ->
+                {
+                    this.inject(service);
+                    getServiceLocator().postConstruct(service);
 
-            if(service instanceof Startable)
-            {
-                ((Startable) service).start().join();
-            }
-        }
+                    if(service instanceof Startable)
+                    {
+                        ((Startable) service).start().join();
+                    }
+                });
     }
 
     private void destroyServices()
     {
-        for(final Object service : discoveredServices)
-        {
-            getServiceLocator().preDestroy(service);
+        discoveredServices.stream()
+                .forEach(service ->
+                {
+                    getServiceLocator().preDestroy(service);
 
-            if(service instanceof Startable)
-            {
-                ((Startable) service).stop().join();
-            }
-        }
+                    if(service instanceof Startable)
+                    {
+                        ((Startable) service).stop().join();
+                    }
+                });
     }
 
     @SuppressWarnings("unchecked")
@@ -188,6 +205,8 @@ public class Container implements Startable
         final List<String> configPackages = config.getAsList("orbit.container.packages", String.class);
         if(configPackages != null) packages.addAll(configPackages);
         if(packagesToScan != null) packages.addAll(packagesToScan);
+
+
         for (final String currentPackage : packages)
         {
             final Set<ClassPath.ClassInfo> classInfos = classPath.getTopLevelClassesRecursive(currentPackage);
@@ -208,6 +227,8 @@ public class Container implements Startable
         {
             processClass(Class.forName(currentClass));
         }
+
+        logger.info("Container considered {} classes and discovered {} services.", discoveredClasses.size(), discoveredServices.size());
     }
 
     @SuppressWarnings("unchecked")
