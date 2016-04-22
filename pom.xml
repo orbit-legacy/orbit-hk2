@@ -42,7 +42,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <url>https://github.com/electronicarts/orbit-hk2/</url>
 
     <properties>
-        <orbit.version>0.8.0</orbit.version>
+        <orbit.version>0.8.1</orbit.version>
     </properties>
 
     <scm>
@@ -57,6 +57,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             <groupId>cloud.orbit</groupId>
             <artifactId>orbit-core</artifactId>
             <version>${orbit.version}</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.glassfish.hk2</groupId>
