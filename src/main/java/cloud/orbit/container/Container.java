@@ -29,6 +29,15 @@
 package cloud.orbit.container;
 
 
+import org.glassfish.hk2.api.ServiceLocator;
+import org.glassfish.hk2.api.ServiceLocatorFactory;
+import org.glassfish.hk2.utilities.ServiceLocatorUtilities;
+import org.jvnet.hk2.annotations.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.reflect.ClassPath;
+
 import cloud.orbit.annotation.Config;
 import cloud.orbit.concurrent.Task;
 import cloud.orbit.container.addons.Addon;
@@ -38,14 +47,6 @@ import cloud.orbit.exception.UncheckedException;
 import cloud.orbit.lifecycle.Startable;
 import cloud.orbit.reflect.ClassCache;
 import cloud.orbit.reflect.FieldDescriptor;
-
-import com.google.common.reflect.ClassPath;
-import org.glassfish.hk2.api.ServiceLocator;
-import org.glassfish.hk2.api.ServiceLocatorFactory;
-import org.glassfish.hk2.utilities.ServiceLocatorUtilities;
-import org.jvnet.hk2.annotations.Service;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.inject.Singleton;
 
@@ -87,7 +88,10 @@ public class Container implements Startable
         try
         {
             // Read configuration
-            config = YAMLConfigReader.readConfig();
+            if(config == null)
+            {
+                config = YAMLConfigReader.readConfig();
+            }
 
             // Override the name if needed
             containerName = config.getAsString("orbit.container.name", containerName);
@@ -393,6 +397,16 @@ public class Container implements Startable
             }
         }
         return o;
+    }
+
+    public ContainerConfig getConfiguration()
+    {
+        return config;
+    }
+
+    public void setConfiguration(final ContainerConfig config)
+    {
+        this.config = config;
     }
 
     public void addClassToScan(Class classType)
