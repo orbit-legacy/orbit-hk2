@@ -38,11 +38,11 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <artifactId>orbit-hk2</artifactId>
     <version>0.9.0-SNAPSHOT</version>
     <name>Orbit HK2 Extension</name>
-    <description>HK2 lifetime extension for Orbit.</description>
-    <url>https://github.com/electronicarts/orbit-hk2/</url>
+    <description>HK2 container for Orbit</description>
+    <url>https://github.com/orbit/orbit-hk2/</url>
 
     <properties>
-        <orbit.version>0.8.1</orbit.version>
+        <orbit.version>0.9.5</orbit.version>
     </properties>
 
     <scm>
@@ -62,12 +62,12 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         <dependency>
             <groupId>org.glassfish.hk2</groupId>
             <artifactId>hk2</artifactId>
-            <version>2.5.0-b03</version>
+            <version>2.5.0-b05</version>
         </dependency>
         <dependency>
             <groupId>org.yaml</groupId>
             <artifactId>snakeyaml</artifactId>
-            <version>1.16</version>
+            <version>1.17</version>
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>
@@ -92,5 +92,42 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>2.4.1</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <keepDependenciesWithProvidedScope>false</keepDependenciesWithProvidedScope>
+                            <artifactSet>
+                                <includes>
+                                    <include>com.google.guava:guava</include>
+                                    <include>org.yaml:snakeyaml</include>
+                                </includes>
+                            </artifactSet>
+                            <relocations>
+                                <relocation>
+                                    <pattern>org.yaml.</pattern>
+                                    <shadedPattern>cloud.orbit.container.shaded.org.yaml.</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.google.</pattern>
+                                    <shadedPattern>cloud.orbit.container.shaded.com.google.</shadedPattern>
+                                </relocation>
+                            </relocations>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>
