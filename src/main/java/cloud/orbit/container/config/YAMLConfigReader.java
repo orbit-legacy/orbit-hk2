@@ -28,17 +28,22 @@
 
 package cloud.orbit.container.config;
 
-import org.yaml.snakeyaml.DumperOptions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.introspector.BeanAccess;
+
 import cloud.orbit.exception.UncheckedException;
 import cloud.orbit.util.IOUtils;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -46,6 +51,19 @@ import java.util.stream.Stream;
 
 public class YAMLConfigReader
 {
+
+    private static final Logger logger = LoggerFactory.getLogger(YAMLConfigReader.class);
+
+    private static final List<String> CONFIG_PATHS = Arrays.asList(
+            "/orbit/orbit.yaml",
+            "/usr/local/orbit/orbit.yaml",
+            "/opt/orbit/orbit.yaml",
+            "/etc/orbit/orbit.yaml",
+            "/etc/opt/orbit/orbit.yaml",
+            System.getProperty("user.home") + "/orbit/orbit.yaml",
+            System.getProperty("orbit.configFile", "null")
+    );
+
     public static ContainerConfig readConfig()
     {
         ContainerConfig newConfig = new ContainerConfigImpl();
@@ -56,13 +74,13 @@ public class YAMLConfigReader
             final URL res = ContainerConfig.class.getResource("/conf/orbit.yaml");
             if (res != null)
             {
-                final Set<String> activeProfiles = Stream.of(System.getProperty("orbit.profiles", "").split(",")).collect(Collectors.toSet());
-                Map<String, Object> props = readProperties(activeProfiles, res.openStream());
-
-                if(props != null)
+                Map<String, Object> props = readProperties(res.openStream());
+                if (props != null)
                 {
                     newConfig.putAll(props);
+                    logger.info("Mounted config: {}", res.getPath());
                 }
+
             }
         }
         catch(IOException e)
@@ -70,10 +88,31 @@ public class YAMLConfigReader
 
         }
 
+        // Mount overload configs
+        CONFIG_PATHS.forEach(path ->
+        {
+            if(path != null)
+            {
+                try
+                {
+                    FileInputStream inputStream = new FileInputStream(path);
+                    Map<String, Object> props = readProperties(inputStream);
+                    newConfig.putAll(props);
+                    logger.info("Mounted config: {}", path);
+                }
+                catch(Exception e)
+                {
+
+                }
+            }
+        });
+
+
         return newConfig;
     }
 
-    private static Map<String, Object> readProperties(final Set<String> activeProfiles, final InputStream in) throws IOException
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> readProperties(final InputStream in) throws IOException
     {
         String inputStreamString = IOUtils.toString(new InputStreamReader(in, "UTF-8"));
         Yaml yaml = new Yaml();
@@ -81,14 +120,10 @@ public class YAMLConfigReader
         final Iterable<Object> iter = yaml.loadAll(substituteVariables(inputStreamString));
 
         final Map<String, Object> newProperties = new LinkedHashMap<>();
+
         iter.forEach(item -> {
             final Map<String, Object> section = (Map<String, Object>) item;
-            final Object sectionProfile = section.get("orbit.profile");
-            if (sectionProfile == null || activeProfiles.contains(sectionProfile))
-            {
-                // if no profile or if the profile is in the current list of profiles.
-                newProperties.putAll(section);
-            }
+            newProperties.putAll(section);
         });
 
         return newProperties;
