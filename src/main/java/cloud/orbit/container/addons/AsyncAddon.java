@@ -43,7 +43,7 @@ public class AsyncAddon implements Addon
 
     @Override
     @SuppressWarnings("unchecked")
-    public void configure(Container container)
+    public void configure(final Container container)
     {
         try
         {

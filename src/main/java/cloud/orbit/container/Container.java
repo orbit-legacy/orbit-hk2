@@ -166,13 +166,17 @@ public class Container implements Startable
     private void initServices()
     {
         // Configure addons
-        discoveredAddons.stream().forEach(a -> a.configure(this));
+        discoveredAddons.forEach(a -> a.configure(this));
 
-        // Configure and start services
-        discoveredServices.stream()
-                .forEach(service ->
+        // Configure/inject services
+        discoveredServices.forEach(this::inject);
+
+        // Run post inject
+        discoveredAddons.forEach(a -> a.postInject(this));
+
+        // Start services
+        discoveredServices.forEach(service ->
                 {
-                    this.inject(service);
                     getServiceLocator().postConstruct(service);
 
                     if(service instanceof Startable)
@@ -184,8 +188,7 @@ public class Container implements Startable
 
     private void destroyServices()
     {
-        discoveredServices.stream()
-                .forEach(service ->
+        discoveredServices.forEach(service ->
                 {
                     getServiceLocator().preDestroy(service);
 

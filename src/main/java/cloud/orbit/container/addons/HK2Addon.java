@@ -66,7 +66,7 @@ public class HK2Addon implements Addon
 
     @Override
     @SuppressWarnings("unchecked")
-    public void configure(Container container)
+    public void postInject(final Container container)
     {
         try
         {

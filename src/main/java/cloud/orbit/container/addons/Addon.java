@@ -49,7 +49,12 @@ public interface Addon
         return new ArrayList<>();
     }
 
-    public default void configure(Container container)
+    public default void configure(final Container container)
+    {
+
+    }
+
+    public default void postInject(final Container container)
     {
 
     }
