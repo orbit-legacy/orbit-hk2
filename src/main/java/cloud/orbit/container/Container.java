@@ -253,7 +253,7 @@ public class Container implements Startable
                 Object o = config.getAsInstance(classType.getName(), Object.class);
                 if (o == null)
                 {
-                    o = serviceLocator.createAndInitialize(classType);
+                    o = getServiceLocator().create(classType);
                 }
 
                 discoveredServices.add(o);
